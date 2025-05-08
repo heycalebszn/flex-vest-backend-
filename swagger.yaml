@@ -1,0 +1,271 @@
+openapi: 3.0.0
+info:
+  title: FlexVest API
+  description: API documentation for FlexVest - A crypto savings platform
+  version: 1.0.0
+  contact:
+    name: FlexVest Support
+    email: support@flexvest.com
+
+servers:
+  - url: http://localhost:5000/api
+    description: Development server
+  - url: https://api.flexvest.com/api
+    description: Production server
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        walletAddress:
+          type: string
+        twoFactorEnabled:
+          type: boolean
+        totalBalance:
+          type: number
+        flexSave:
+          type: object
+          properties:
+            balance:
+              type: number
+        status:
+          type: string
+          enum: [active, inactive, suspended]
+
+    Transaction:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [deposit, withdrawal, interest, referral_bonus, transfer]
+        savingsType:
+          type: string
+          enum: [flex, goal, fixed]
+        amount:
+          type: number
+        currency:
+          type: string
+          enum: [USDT, USDC]
+        status:
+          type: string
+          enum: [pending, completed, failed]
+        createdAt:
+          type: string
+          format: date-time
+
+paths:
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+                phone:
+                  type: string
+      responses:
+        '201':
+          description: Registration successful
+        '400':
+          description: Invalid input
+        '500':
+          description: Server error
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                twoFactorCode:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                  refreshToken:
+                    type: string
+        '401':
+          description: Invalid credentials
+
+  /savings/summary:
+    get:
+      tags:
+        - Savings
+      summary: Get user's savings summary
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Savings summary retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalBalance:
+                    type: number
+                  summary:
+                    type: object
+                    properties:
+                      flexSave:
+                        type: number
+                      goalSave:
+                        type: number
+                      fixedSave:
+                        type: number
+
+  /savings/flex/deposit:
+    post:
+      tags:
+        - Savings
+      summary: Deposit to Flex Save
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+              properties:
+                amount:
+                  type: number
+                currency:
+                  type: string
+                  enum: [USDT, USDC]
+                  default: USDT
+      responses:
+        '200':
+          description: Deposit successful
+        '400':
+          description: Invalid input
+        '401':
+          description: Unauthorized
+
+  /analytics/growth:
+    get:
+      tags:
+        - Analytics
+      summary: Get growth analytics
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: period
+          schema:
+            type: string
+            enum: [1m, 3m, 6m, 1y]
+            default: 1y
+      responses:
+        '200':
+          description: Growth analytics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  growthChart:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        date:
+                          type: string
+                          format: date
+                        balance:
+                          type: number
+                  interestEarned:
+                    type: number
+                  savingsDistribution:
+                    type: object
+
+  /referrals/stats:
+    get:
+      tags:
+        - Referrals
+      summary: Get referral statistics
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Referral stats retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  referralCode:
+                    type: string
+                  referralCount:
+                    type: number
+                  referralEarnings:
+                    type: number
+                  referredUsers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        email:
+                          type: string
+                        createdAt:
+                          type: string
+                          format: date-time
+
+tags:
+  - name: Authentication
+    description: User authentication endpoints
+  - name: Savings
+    description: Savings management endpoints
+  - name: Analytics
+    description: Analytics and reporting endpoints
+  - name: Referrals
+    description: Referral program endpoints 
