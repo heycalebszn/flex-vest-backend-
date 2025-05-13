@@ -4,6 +4,8 @@ const cors = require('cors');
 const morgan = require('morgan');
 const mongoose = require('mongoose');
 const rateLimit = require('express-rate-limit');
+const swaggerUi = require('swagger-ui-express');
+const swaggerConfig = require('./config/swagger.config');
 
 // Import routes
 const authRoutes = require('./routes/auth.routes');
@@ -32,6 +34,9 @@ app.use(cors({
 app.use(morgan('dev'));
 app.use(limiter);
 
+// Swagger Documentation - must be before routes
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerConfig));
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/savings', savingsRoutes);
@@ -59,6 +64,7 @@ mongoose.connect(process.env.MONGODB_URI, {
   const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
+    console.log(`API Documentation available at http://localhost:${PORT}/api-docs`);
   });
 })
 .catch(err => {
